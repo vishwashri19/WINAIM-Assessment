@@ -1,0 +1,166 @@
+-- Customer Relationship Management
+-- Database Schema Design
+
+CREATE TABLE customers (
+    customer_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_name VARCHAR(100),
+    industry VARCHAR(50),
+    contact_email VARCHAR(100),
+    contact_phone VARCHAR(20),
+    address VARCHAR(255)
+);
+
+CREATE TABLE contacts (
+    contact_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT,
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
+    email VARCHAR(100),
+    phone VARCHAR(20),
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+
+CREATE TABLE opportunities (
+    opportunity_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT,
+    opportunity_name VARCHAR(100),
+    stage VARCHAR(50),
+    amount DECIMAL(10, 2),
+    close_date DATE,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+
+CREATE TABLE interactions (
+    interaction_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT,
+    interaction_type VARCHAR(50),
+    interaction_date DATETIME,
+    notes TEXT,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+
+-- API Development (Node.js with Express)
+
+const express = require('express');
+const app = express();
+app.use(express.json());
+
+const customers = []; // Replace with actual database logic
+const contacts = [];
+const opportunities = [];
+const interactions = [];
+
+// Customers Endpoints
+app.get('/customers', (req, res) => {
+    res.json(customers);
+});
+
+app.get('/customers/:id', (req, res) => {
+    const customer = customers.find(c => c.customer_id == req.params.id);
+    res.json(customer);
+});
+
+app.post('/customers', (req, res) => {
+    const newCustomer = req.body;
+    customers.push(newCustomer);
+    res.status(201).json(newCustomer);
+});
+
+app.put('/customers/:id', (req, res) => {
+    const index = customers.findIndex(c => c.customer_id == req.params.id);
+    customers[index] = req.body;
+    res.json(req.body);
+});
+
+app.delete('/customers/:id', (req, res) => {
+    const index = customers.findIndex(c => c.customer_id == req.params.id);
+    customers.splice(index, 1);
+    res.status(204).end();
+});
+
+// Similar endpoints for contacts, opportunities, and interactions...
+
+app.listen(3000, () => {
+    console.log('Server is running on port 3000');
+});
+
+-- Frontend Development (React)
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const CustomerList = () => {
+  const [customers, setCustomers] = useState([]);
+
+  useEffect(() => {
+    axios.get('/customers').then(response => {
+      setCustomers(response.data);
+    });
+  }, []);
+
+  const deleteCustomer = (id) => {
+    axios.delete(`/customers/${id}`).then(() => {
+      setCustomers(customers.filter(customer => customer.customer_id !== id));
+    });
+  };
+
+  return (
+    <div>
+      <h1>Customer List</h1>
+      <button>Add Customer</button>
+      <ul>
+        {customers.map(customer => (
+          <li key={customer.customer_id}>
+            {customer.customer_name} - {customer.industry}
+            <button onClick={() => deleteCustomer(customer.customer_id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default CustomerList;
+
+import React, { useState, useEffect } from 'react';
+import { Bar } from 'react-chartjs-2';
+import axios from 'axios';
+
+const Dashboard = () => {
+  const [data, setData] = useState({
+    labels: [],
+    datasets: [
+      {
+        label: 'Opportunities',
+        data: [],
+        backgroundColor: 'rgba(75,192,192,0.4)'
+      }
+    ]
+  });
+
+  useEffect(() => {
+    axios.get('/customers/opportunities').then(response => {
+      const labels = response.data.map(op => op.stage);
+      const data = response.data.map(op => op.amount);
+      setData({
+        labels,
+        datasets: [
+          {
+            label: 'Opportunities',
+            data,
+            backgroundColor: 'rgba(75,192,192,0.4)'
+          }
+        ]
+      });
+    });
+  }, []);
+
+  return (
+    <div>
+      <h1>Dashboard</h1>
+      <Bar data={data} />
+    </div>
+  );
+};
+
+export default Dashboard;
